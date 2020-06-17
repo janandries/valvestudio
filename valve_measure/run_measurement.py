@@ -5,12 +5,12 @@ from datetime import datetime
 
 PWM_OUTPUT_PIN = 12
 
-VALVE_OPEN_TIME = 60 # seconds
+VALVE_OPEN_TIME = 20 # seconds
 measurements = [[100, 0.5],	[50,  0.5]]
 
 class Setting:
-	def __init__(self, frequency, duty_cycle, duration):
-		self.frequency = frequency
+	def __init__(self, freq, duty_cycle, duration):
+		self.frequency = freq
 		self.dutycycle = duty_cycle
 		self.duration = duration
 
@@ -18,7 +18,7 @@ class Setting:
 def save_picture(file_name):
 	output_folder = "result/"
 
-	print(f"Saving image {file_name} to {output_folder}{file_name}")
+	print(f"     Saving image {file_name} to {output_folder}{file_name}")
 	
 	# take picture
 
@@ -34,12 +34,12 @@ def cleanup_valve():
 	GPIO.cleanup()
 
 def open_valve(setting):
-	print(f"Running valve for {setting.duration} seconds")
+	print(f"     Running valve for {setting.duration} seconds")
 	p = GPIO.PWM(PWM_OUTPUT_PIN, 0.5)
 	p.start(1)
 	time.sleep(setting.duration)
 	p.stop()
-	print("Valve closed")
+	print("     Valve closed")
 
 def get_time_string():
 	now = datetime.now()
@@ -49,12 +49,16 @@ def get_date_string():
 	now = datetime.now()
 	return now.strftime("%d-%m-%Y")
 
+def get_now_time():
+	now = datetime.now()
+	return now.strftime("%H%M%S")
+
 def main():
 	FILENAME = "result/output.csv"
 	camera = PiCamera()
 
 	with open(FILENAME, 'w') as output_file:
-		base_file_name = datetime.now().strftime("%Y%m%d_")
+		base_file_name = datetime.now().strftime("%Y%m%d")
 		
 		print(f"Output file: {FILENAME}")
 
@@ -63,31 +67,28 @@ def main():
 		print(f"Found {len(measurements)} measurments.")
 
 		for n, meas in enumerate(measurements):
+			setting = Setting(meas[0], meas[1], VALVE_OPEN_TIME)
 			print()
-			print("Starting measurement with freq: {meas.frequency} duty cycle: {meas.dutycycle} for {meas.duration} seconds.")
+			print(f"[{n}] Starting measurement with freq: {setting.frequency} duty cycle: {setting.dutycycle} for {setting.duration} seconds.")
 
 			start_date = get_date_string()
 			start_time = get_time_string()
-			start_picture_name = f"{base_file_name}_{n}_start.png"
-			stop_picture_name  = f"{base_file_name}_{n}_start.png"
 
-			setting = Setting(meas[0],meas[1],VALVE_OPEN_TIME)
+			start_picture_name = f"{base_file_name}_{get_now_time()}_{n}_start.png"
 			
-			print("Saving start image to 'result/{stop_picture_name}'")
+			print(f"     Saving start image to 'result/{start_picture_name}'")
 			camera.capture('result/' + start_picture_name)
 			
 			open_valve(setting)
 
-			print("Saving stop image to 'result/{stop_picture_name}'")
+			stop_picture_name = f"{base_file_name}_{get_now_time()}_{n}_stop.png"
+			print(f"     Saving stop image to 'result/{stop_picture_name}'")
 			camera.capture('result/' + stop_picture_name)
 
-			print(f"Writing results of freq: {setting.frequency}, duty_cycle: {setting.dutycycle}, duration: {setting.duration}")
+			print(f"     Writing results of freq: {setting.frequency}, duty_cycle: {setting.dutycycle}, duration: {setting.duration}")
+			output_file.write(f"{start_date},{start_time},{setting.frequency},{setting.dutycycle},{setting.duration},{start_picture_name},{stop_picture_name}\n")
 
-			output_file.write(start_date + "," + start_time + "," + \
-						str(setting.frequency) + "," + setting.dutycycle + "," + setting.duration + "," + \
-						start_picture_name + "," + stop_picture_name)
-
-			print("Done.")
+			print("     Done.")
 
 		print("Shutting down")
 		cleanup_valve()
@@ -99,4 +100,4 @@ def test_camera():
 	print("Done")
 
 if __name__ == "__main__":
-	test_camera()
+	main()
