@@ -4,11 +4,14 @@ import time
 from datetime import datetime
 from list_valve_test_2 import MEASUREMENT_SCHEDULE
 from list_valve_test_2 import VALVE_OPEN_TIME
+import os
 
 PWM_OUTPUT_PIN = 12
 
 PIC_WAIT_TIME_S = 2
 measurements = MEASUREMENT_SCHEDULE
+
+USE_WEBCAM = True
 
 class Setting:
 	def __init__(self, freq, duty_cycle, duration):
@@ -17,15 +20,14 @@ class Setting:
 		self.duration = duration
 
 
-def save_picture(file_name):
-	output_folder = "result/"
+def save_picture(folder, file_name):
+	print(f"     Saving image {file_name} to {folder}{file_name}")
 
-	print(f"     Saving image {file_name} to {output_folder}{file_name}")
-	
-	# take picture
-
-	#save picture
-
+	if USE_WEBCAM:		
+		# take picture
+		os.system(f"fswebcam -r 800x600 --save {folder}{file_name}") # uses Fswebcam to take picture
+	else:
+		camera.capture(folder + file_name)
 
 def configure_valve():
 	GPIO.setmode(GPIO.BOARD)
@@ -58,7 +60,8 @@ def get_now_time():
 
 def main():
 	FILENAME = "result/output.csv"
-	camera = PiCamera()
+	if not USE_WEBCAM:
+		camera = PiCamera()
 
 	with open(FILENAME, 'w') as output_file:
 		base_file_name = datetime.now().strftime("%Y%m%d")
@@ -81,14 +84,15 @@ def main():
 			
 				print(f"     Saving start image to 'result/{start_picture_name}'")
 				time.sleep(PIC_WAIT_TIME_S)
-				camera.capture('result/' + start_picture_name)
+				save_picture('result/', start_picture_name)
 			
 				open_valve(setting)
 
 				stop_picture_name = f"{base_file_name}_{get_now_time()}_{n}_stop.png"
 				print(f"     Saving stop image to 'result/{stop_picture_name}'")
 				time.sleep(PIC_WAIT_TIME_S)
-				camera.capture('result/' + stop_picture_name)
+
+				save_picture('result/', stop_picture_name)
 
 				print(f"     Writing results of freq: {setting.frequency}, duty_cycle: {setting.dutycycle}, duration: {setting.duration}")
 				output_file.write(f"{start_date},{start_time},{setting.frequency},{setting.dutycycle},{setting.duration},{start_picture_name},{stop_picture_name}\n")
