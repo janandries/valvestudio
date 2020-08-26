@@ -54,17 +54,22 @@ def get_date_string():
 	now = datetime.now()
 	return now.strftime("%d-%m-%Y")
 
+def get_now_date():
+	now = datetime.now()
+	return now.strftime("%Y%m%d")
+
 def get_now_time():
 	now = datetime.now()
 	return now.strftime("%H%M%S")
 
 def main():
-	FILENAME = "result/output.csv"
+	FILENAME = f"result/{get_now_date()}_{get_now_time()}_output.csv"
+	
 	if not USE_WEBCAM:
 		camera = PiCamera()
 
 	with open(FILENAME, 'w') as output_file:
-		base_file_name = datetime.now().strftime("%Y%m%d")
+		base_file_name = get_now_date()
 		
 		print(f"Output file: {FILENAME}")
 		try:
