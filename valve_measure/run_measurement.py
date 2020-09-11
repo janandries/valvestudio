@@ -2,8 +2,8 @@ import RPi.GPIO as GPIO
 from picamera import PiCamera
 import time
 from datetime import datetime
-from list_valve_test_2 import MEASUREMENT_SCHEDULE
-from list_valve_test_2 import VALVE_OPEN_TIME
+from list_valve_test_1 import MEASUREMENT_SCHEDULE
+from list_valve_test_1 import VALVE_OPEN_TIME
 import os
 
 PWM_OUTPUT_PIN = 12
@@ -11,7 +11,10 @@ PWM_OUTPUT_PIN = 12
 PIC_WAIT_TIME_S = 2
 measurements = MEASUREMENT_SCHEDULE
 
-USE_WEBCAM = True
+USE_WEBCAM = False
+camera = PiCamera()
+
+REGISTER_PRESSURE = False
 
 class Setting:
 	def __init__(self, freq, duty_cycle, duration):
@@ -25,7 +28,7 @@ def save_picture(folder, file_name):
 
 	if USE_WEBCAM:		
 		# take picture
-		os.system(f"fswebcam -r 800x600 --save {folder}{file_name}") # uses Fswebcam to take picture
+		os.system(f"fswebcam --save {folder}{file_name}") # uses Fswebcam to take picture
 	else:
 		camera.capture(folder + file_name)
 
@@ -65,8 +68,8 @@ def get_now_time():
 def main():
 	FILENAME = f"result/{get_now_date()}_{get_now_time()}_output.csv"
 	
-	if not USE_WEBCAM:
-		camera = PiCamera()
+	#if not USE_WEBCAM:
+	#camera = PiCamera()
 
 	with open(FILENAME, 'w') as output_file:
 		base_file_name = get_now_date()
@@ -77,7 +80,14 @@ def main():
 
 			print(f"Found {len(measurements)} measurments.")
 
+			if (REGISTER_PRESSURE == False):
+				start_pressure = float(input("Pressure will only be recorded at the beginning of the measurements, and enter here: "))
+				end_pressure = start_pressure
+
 			for n, meas in enumerate(measurements):
+				if (REGISTER_PRESSURE):
+					start_pressure = float(input("Adjust pressure to desired value, and enter here: "))
+
 				setting = Setting(meas[0], meas[1], VALVE_OPEN_TIME)
 				print()
 				print(f"[{n}] Starting measurement with freq: {setting.frequency} duty cycle: {setting.dutycycle} for {setting.duration} seconds.")	
@@ -99,13 +109,16 @@ def main():
 
 				save_picture('result/', stop_picture_name)
 
+				if (REGISTER_PRESSURE):
+					end_pressure = float(input("Enter the pressure after messurement (don't adjust yet): "))
+
 				print(f"     Writing results of freq: {setting.frequency}, duty_cycle: {setting.dutycycle}, duration: {setting.duration}")
-				output_file.write(f"{start_date},{start_time},{setting.frequency},{setting.dutycycle},{setting.duration},{start_picture_name},{stop_picture_name}\n")
+				output_file.write(f"{start_date},{start_time},{setting.frequency},{setting.dutycycle},{setting.duration},{start_picture_name},{stop_picture_name},{start_pressure},{end_pressure}\n")
 
 				print("     Done.")
+				
 
 			print("Shutting down")
-			cleanup_valve()
 		finally:
 			GPIO.cleanup()
 
